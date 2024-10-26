@@ -12,10 +12,10 @@ const ProjectTable = () => {
     endDate: '',
     team: [],
   });
+  const [editingProjectId, setEditingProject] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Fetch projects and employees
   useEffect(() => {
     fetchProjects();
     fetchEmployees();
@@ -41,10 +41,15 @@ const ProjectTable = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://127.0.0.1:8000/project/create/', newProject);
-      setSuccessMessage('Project added successfully!');
+      if (editingProjectId) {
+        await axios.put(`http://127.0.0.1:8000/project/${editingProjectId.id}/update/`, newProject);
+        setSuccessMessage('Project updated successfully!');
+      } else {
+        await axios.post('http://127.0.0.1:8000/project/create/', newProject);
+        setSuccessMessage('Project added successfully!');
+      }
       setErrorMessage('');
-      fetchProjects();  // Refresh project list
+      fetchProjects();
       setNewProject({
         name: '',
         teamLead: '',
@@ -52,9 +57,34 @@ const ProjectTable = () => {
         startDate: '',
         endDate: '',
         team: [],
-      }); // Reset form
+      });
+      setEditingProject(null);
     } catch (error) {
-      setErrorMessage('There was an error adding the project.');
+      setErrorMessage('There was an error saving the project.');
+      setSuccessMessage('');
+    }
+  };
+
+  const handleEdit = (project) => {
+    setNewProject({
+      name: project.name,
+      teamLead: project.team_lead,
+      status: project.status,
+      startDate: project.start_date,
+      endDate: project.end_date,
+      team: project.team,
+    });
+    setEditingProject(project);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/project/${id}/delete/`);
+      setSuccessMessage('Project deleted successfully!');
+      setErrorMessage('');
+      fetchProjects();
+    } catch (error) {
+      setErrorMessage('There was an error deleting the project.');
       setSuccessMessage('');
     }
   };
@@ -71,6 +101,7 @@ const ProjectTable = () => {
             <th>Status</th>
             <th>Start Date</th>
             <th>End Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -82,116 +113,77 @@ const ProjectTable = () => {
               <td>{project.status}</td>
               <td>{project.start_date}</td>
               <td>{project.end_date}</td>
+              <td>
+                <button className="edit-btn" onClick={() => handleEdit(project)}>Edit</button>
+                <button className="delete-btn" onClick={() => handleDelete(project.id)}>Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      <h2>Add New Project</h2>
-      <form onSubmit={handleSubmit}>
-        <table className="form-table">
-          <tbody>
-            <tr>
-              <th><label htmlFor="projectName">Project Name:</label></th>
-              <td>
-                <input
-                  type="text"
-                  id="projectName"
-                  name="name"
-                  value={newProject.name}
-                  onChange={handleChange}
-                  required
-                />
-              </td>
-            </tr>
-            <tr>
-              <th><label htmlFor="teamLead">Team Lead:</label></th>
-              <td>
-                <select
-                  id="teamLead"
-                  name="teamLead"
-                  value={newProject.teamLead}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Select Team Lead</option>
-                  {employees.map(employee => (
-                    <option key={employee.id} value={employee.id}>{employee.name}</option>
-                  ))}
-                </select>
-              </td>
-            </tr>
-            <tr>
-              <th><label htmlFor="team">Team Members:</label></th>
-              <td>
-                <select
-                  id="team"
-                  name="team"
-                  value={newProject.team}
-                  onChange={(e) =>
-                    setNewProject({
-                      ...newProject,
-                      team: [...e.target.selectedOptions].map(option => option.value),
-                    })
-                  }
-                  multiple
-                >
-                  <option value="">Select Team Members</option>
-                  {employees.map(employee => (
-                    <option key={employee.id} value={employee.id}>{employee.name}</option>
-                  ))}
-                </select>
-              </td>
-            </tr>
-            <tr>
-              <th><label htmlFor="status">Status:</label></th>
-              <td>
-                <select
-                  id="status"
-                  name="status"
-                  value={newProject.status}
-                  onChange={handleChange}
-                >
-                  <option value="NEW">New</option>
-                  <option value="ON-GOING">On-going</option>
-                  <option value="ENDED">Ended</option>
-                </select>
-              </td>
-            </tr>
-            <tr>
-              <th><label htmlFor="startDate">Start Date:</label></th>
-              <td>
-                <input
-                  type="date"
-                  id="startDate"
-                  name="startDate"
-                  value={newProject.startDate}
-                  onChange={handleChange}
-                  required
-                />
-              </td>
-            </tr>
-            <tr>
-              <th><label htmlFor="endDate">End Date:</label></th>
-              <td>
-                <input
-                  type="date"
-                  id="endDate"
-                  name="endDate"
-                  value={newProject.endDate}
-                  onChange={handleChange}
-                  required
-                />
-              </td>
-            </tr>
-            <tr>
-              <td colSpan="2" style={{ textAlign: 'right' }}>
-                <button type="submit">Add Project</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </form>
+      <br></br>
+      <h2>{editingProjectId ? 'Edit Project' : 'Add New Project'}</h2>
+      <div className="form-container">
+        <form onSubmit={handleSubmit}>
+          <table className="form-table">
+            <tbody>
+              <tr>
+                <th><label>Project Name:</label></th>
+                <td>
+                  <input
+                    type="text"
+                    name="name"
+                    value={newProject.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </td>
+              </tr>
+              <tr>
+                <th><label>Team Lead:</label></th>
+                <td>
+                  <select
+                    name="teamLead"
+                    value={newProject.teamLead}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select Team Lead</option>
+                    {employees.map(employee => (
+                      <option key={employee.id} value={employee.id}>{employee.name}</option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <th><label>Team Members:</label></th>
+                <td>
+                  <select
+                    name="team"
+                    value={newProject.team}
+                    onChange={(e) =>
+                      setNewProject({
+                        ...newProject,
+                        team: [...e.target.selectedOptions].map(option => option.value),
+                      })
+                    }
+                    multiple
+                  >
+                    {employees.map(employee => (
+                      <option key={employee.id} value={employee.id}>{employee.name}</option>
+                    ))}
+                  </select>
+                </td>
+              </tr>
+              <tr className="form-buttons">
+                <td colSpan="2" style={{ textAlign: 'center' }}>
+                  <button type="submit">{editingProjectId ? 'Update' : 'Add'} Project</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
+      </div>
 
       {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
       {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}

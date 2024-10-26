@@ -63,7 +63,9 @@ function App() {
           <div className='container'>
             <nav>
               <ul>
-                <li><Link to="/employees">Employees</Link></li>
+                <div>
+                    <li><Link to="/employees">Employees</Link></li>
+                </div>
                 <li><Link to="/departments">Departments</Link></li>
                 <li><Link to="/projects">Projects</Link></li>
               </ul>

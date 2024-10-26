@@ -4,10 +4,10 @@ import axios from 'axios';
 const DepartmentTable = () => {
   const [departments, setDepartments] = useState([]);
   const [newDepartment, setNewDepartment] = useState({ name: '' });
+  const [editingDepartmentId, setEditingDepartment] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Fetch departments
   useEffect(() => {
     fetchDepartments();
   }, []);
@@ -26,13 +26,36 @@ const DepartmentTable = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://127.0.0.1:8000/department/create/', newDepartment);
-      setSuccessMessage('Department added successfully!');
+      if (editingDepartmentId) {
+        await axios.put(`http://127.0.0.1:8000/department/${editingDepartmentId.id}/update/`, newDepartment);
+        setSuccessMessage('Department updated successfully!');
+      } else {
+        await axios.post('http://127.0.0.1:8000/department/create/', newDepartment);
+        setSuccessMessage('Department added successfully!');
+      }
       setErrorMessage('');
-      fetchDepartments();  // Refresh department list
-      setNewDepartment({ name: '' }); // Reset form
+      fetchDepartments();
+      setNewDepartment({ name: '' });
+      setEditingDepartment(null);
     } catch (error) {
-      setErrorMessage('There was an error adding the department.');
+      setErrorMessage('There was an error saving the department.');
+      setSuccessMessage('');
+    }
+  };
+
+  const handleEdit = (department) => {
+    setNewDepartment({ name: department.name });
+    setEditingDepartment(department);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://127.0.0.1:8000/department/${id}/delete/`);
+      setSuccessMessage('Department deleted successfully!');
+      setErrorMessage('');
+      fetchDepartments();
+    } catch (error) {
+      setErrorMessage('There was an error deleting the department.');
       setSuccessMessage('');
     }
   };
@@ -45,6 +68,7 @@ const DepartmentTable = () => {
           <tr>
             <th>ID</th>
             <th>Name</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -52,37 +76,42 @@ const DepartmentTable = () => {
             <tr key={department.id}>
               <td>{department.id}</td>
               <td>{department.name}</td>
+              <td>
+                <button className="edit-btn" onClick={() => handleEdit(department)}>Edit</button>
+                <button className="delete-btn" onClick={() => handleDelete(department.id)}>Delete</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <br></br>
+      <h2>{editingDepartmentId ? 'Edit Department' : 'Add New Department'}</h2>
+      <div className="form-container">
+        <form onSubmit={handleSubmit}>
+          <table className="form-table">
+            <tbody>
+              <tr>
+                <th><label>Department Name:</label></th>
+                <td>
+                  <input
+                    type="text"
+                    name="name"
+                    value={newDepartment.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </td>
+              </tr>
+              <tr className="form-buttons">
+                <td colSpan="2" style={{ textAlign: 'center' }}>
+                  <button type="submit">{editingDepartmentId ? 'Update' : 'Add'} Department</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </form>
+      </div>
 
-      <h2>Add New Department</h2>
-      <form onSubmit={handleSubmit}>
-        <table className="form-table">
-          <tbody>
-            <tr>
-              <th><label htmlFor="departmentName">Department Name:</label></th>
-              <td>
-                <input
-                  type="text"
-                  id="departmentName"
-                  name="name"
-                  value={newDepartment.name}
-                  onChange={handleChange}
-                  required
-                />
-              </td>
-            </tr>
-            <tr>
-              <td colSpan="2" style={{ textAlign: 'right' }}>
-                <button type="submit">Add Department</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </form>
-      
       {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
       {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
     </div>
