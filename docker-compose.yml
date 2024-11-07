@@ -1,0 +1,40 @@
+version: '3'
+
+services:
+  backend:
+    build:
+      context: ./demo2  # Path to your backend directory (Django)
+    container_name: backend
+    ports:
+      - "8000:8000"  # Expose Django's port
+    volumes:
+      - ./demo2:/app  # Sync changes during development
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgres://postgres:Admin@db:5432/postgres  # Use the db service for connection
+    depends_on:
+      - db  # Ensure the db service is available before starting backend
+
+  frontend:
+    build:
+      context: ./react_api_krut  # Path to your frontend directory (React)
+    container_name: frontend
+    ports:
+      - "3000:3000"  # Expose React's port
+    volumes:
+      - ./react_api_krut:/app  # Sync changes during development
+
+  db:
+    image: postgres:latest  # Use the latest PostgreSQL image
+    container_name: db
+    environment:
+      POSTGRES_DB: postgres  # Database name
+      POSTGRES_USER: postgres  # PostgreSQL user
+      POSTGRES_PASSWORD: Admin  # PostgreSQL password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persist data
+    ports:
+      - "5432:5432"  # Expose PostgreSQL port
+
+volumes:
+  postgres_data:
